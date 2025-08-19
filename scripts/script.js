@@ -8,18 +8,18 @@ const timerText = document.querySelector(".timer-text b");
 const heartContainer = document.querySelector(".heart-container");
 
 let currentWord, correctLetters, wrongGuessCount, timer, timeLeft;
-let maxGuesses = 6;
+const maxGuesses = 6;
 let level = 1;
-let hearts = 5;
 const maxHearts = 5;
-const heartRegenTime = 10 * 60 * 1000;
+const regenTime = 10 * 60 * 1000;
+
+let hearts = JSON.parse(localStorage.getItem("hearts")) || Array(maxHearts).fill(null);
 
 const resetGame = () => {
   clearInterval(timer);
   timeLeft = 120;
   updateTimerUI();
   startTimer();
-
   correctLetters = [];
   wrongGuessCount = 0;
   hangmanImage.src = `images/hangman-${wrongGuessCount}.svg`;
@@ -43,7 +43,7 @@ const getRandomWord = () => {
 
 const gameOver = (isVictory) => {
   clearInterval(timer);
-  const modalText = isVictory ? 'You found the word: ' : 'The correct word was:';
+  const modalText = isVictory ? 'You found the word:' : 'The correct word was:';
   gameModal.querySelector("img").src = `images/${isVictory ? 'victory' : 'lost'}.gif`;
   gameModal.querySelector("h4").innerText = `${isVictory ? 'Congrats!' : 'Game Over!'}`;
   gameModal.querySelector("p").innerHTML = `${modalText} <b>${currentWord}</b>`;
@@ -53,32 +53,7 @@ const gameOver = (isVictory) => {
     level++;
     getRandomWord();
   } else {
-    hearts--;
-    updateHearts();
-    if (hearts > 0) {
-      setTimeout(getRandomWord, 3000);
-    }
-  }
-};
-
-const updateHearts = () => {
-  heartContainer.innerHTML = "";
-  for (let i = 0; i < maxHearts; i++) {
-    const heart = document.createElement("span");
-    heart.innerText = i < hearts ? "❤️" : "🤍";
-    heartContainer.appendChild(heart);
-  }
-};
-
-const regenerateHearts = () => {
-  const lastUsed = parseInt(localStorage.getItem("lastHeartUsed")) || 0;
-  const now = Date.now();
-  const elapsed = now - lastUsed;
-  const regenCount = Math.floor(elapsed / heartRegenTime);
-  if (regenCount > 0 && hearts < maxHearts) {
-    hearts = Math.min(maxHearts, hearts + regenCount);
-    localStorage.setItem("lastHeartUsed", now - (elapsed % heartRegenTime));
-    updateHearts();
+    useHeart();
   }
 };
 
@@ -117,27 +92,86 @@ const initGame = (button, clickedLetter) => {
   button.disabled = true;
   guessesText.innerText = `${wrongGuessCount} / ${maxGuesses}`;
 
+  const guessedAll = [...wordDisplay.querySelectorAll("li")].every(li => li.classList.contains("guessed"));
+  if (guessedAll) return gameOver(true);
   if (wrongGuessCount === maxGuesses) return gameOver(false);
-
-  const guessedWord = [...wordDisplay.querySelectorAll("li")].every(li => li.classList.contains("guessed"));
-  if (guessedWord) return gameOver(true);
 };
 
-for (let i = 97; i <= 122; i++) {
-  const button = document.createElement("button");
-  button.innerText = String.fromCharCode(i);
-  keyboardDiv.appendChild(button);
-  button.addEventListener("click", e => initGame(e.target, String.fromCharCode(i)));
-}
+const renderKeyboard = () => {
+  for (let i = 97; i <= 122; i++) {
+    const button = document.createElement("button");
+    button.innerText = String.fromCharCode(i);
+    keyboardDiv.appendChild(button);
+    button.addEventListener("click", e => initGame(e.target, String.fromCharCode(i)));
+  }
+};
+
+const updateHeartsUI = () => {
+  heartContainer.innerHTML = "";
+  hearts.forEach((usedAt, i) => {
+    const span = document.createElement("span");
+    if (usedAt === null) {
+      span.innerText = "❤️";
+    } else {
+      const timeLeft = regenTime - (Date.now() - usedAt);
+      if (timeLeft > 0) {
+        span.innerHTML = `🕓 <span data-index="${i}" class="regen-timer">${formatTime(Math.ceil(timeLeft / 1000))}</span>`;
+      } else {
+        hearts[i] = null;
+        localStorage.setItem("hearts", JSON.stringify(hearts));
+        span.innerText = "❤️";
+        if (!document.querySelector(".play-again.show") && gameModal.classList.contains("show")) {
+          playAgainBtn.classList.add("show");
+        }
+      }
+    }
+    heartContainer.appendChild(span);
+  });
+};
+
+const formatTime = (secs) => {
+  const m = String(Math.floor(secs / 60)).padStart(2, "0");
+  const s = String(secs % 60).padStart(2, "0");
+  return `${m}:${s}`;
+};
+
+const regenHeartTimers = () => {
+  document.querySelectorAll(".regen-timer").forEach(timerSpan => {
+    const i = timerSpan.dataset.index;
+    const usedAt = hearts[i];
+    const remaining = regenTime - (Date.now() - usedAt);
+    if (remaining <= 0) {
+      hearts[i] = null;
+      localStorage.setItem("hearts", JSON.stringify(hearts));
+    }
+  });
+  updateHeartsUI();
+};
+
+const useHeart = () => {
+  const index = hearts.findIndex(h => h === null);
+  if (index !== -1) {
+    hearts[index] = Date.now();
+    localStorage.setItem("hearts", JSON.stringify(hearts));
+    updateHeartsUI();
+    setTimeout(getRandomWord, 3000);
+  } else {
+    playAgainBtn.innerText = "Return to Lobby";
+    playAgainBtn.addEventListener("click", () => {
+      location.href = "lobby.html";
+    });
+  }
+};
+
+setInterval(regenHeartTimers, 1000);
 
 playAgainBtn.addEventListener("click", () => {
-  if (hearts > 0) {
-    localStorage.setItem("lastHeartUsed", Date.now());
+  if (hearts.includes(null)) {
     getRandomWord();
+    playAgainBtn.classList.remove("show");
   }
 });
 
-setInterval(regenerateHearts, 60000);
-regenerateHearts();
+renderKeyboard();
+updateHeartsUI();
 getRandomWord();
-updateHearts();
