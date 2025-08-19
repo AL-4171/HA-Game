@@ -34,10 +34,10 @@
 </head>
 <body>
   <h1>Hangman Game</h1>
-  <div class="heart-container"></div>
-  <button class="play-button">Play</button>
+<div class="heart-container"></div>
+<button class="play-button" style="display:none;">Play</button>
 
- <script>
+<script>
   const container = document.querySelector(".heart-container");
   const playButton = document.querySelector(".play-button");
   const regenTime = 10 * 60 * 1000;
@@ -63,7 +63,6 @@
             hearts[i] = null;
             span.textContent = "❤️";
             canPlay = true;
-            // save after regeneration
             localStorage.setItem("hearts", JSON.stringify(hearts));
           } else {
             const m = String(Math.floor(timeLeft / 1000 / 60)).padStart(2, "0");
@@ -71,7 +70,7 @@
             span.textContent = `🕓 ${m}:${s}`;
           }
         } else {
-          span.textContent = "🕓 --:--"; // waiting
+          span.textContent = "🕓 --:--";
         }
       }
 
