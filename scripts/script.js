@@ -115,37 +115,22 @@ const updateHeartsUI = () => {
     } else {
       const timeLeft = regenTime - (Date.now() - usedAt);
       if (timeLeft > 0) {
-        span.innerHTML = `🕓 <span data-index="${i}" class="regen-timer">${formatTime(Math.ceil(timeLeft / 1000))}</span>`;
+        const m = String(Math.floor(timeLeft / 1000 / 60)).padStart(2, "0");
+        const s = String(Math.floor((timeLeft / 1000) % 60)).padStart(2, "0");
+        span.innerText = `🕓 ${m}:${s}`;
       } else {
         hearts[i] = null;
-        localStorage.setItem("hearts", JSON.stringify(hearts));
         span.innerText = "❤️";
-        if (!document.querySelector(".play-again.show") && gameModal.classList.contains("show")) {
-          playAgainBtn.classList.add("show");
-        }
+        localStorage.setItem("hearts", JSON.stringify(hearts));
       }
     }
     heartContainer.appendChild(span);
   });
 };
 
-const formatTime = (secs) => {
-  const m = String(Math.floor(secs / 60)).padStart(2, "0");
-  const s = String(secs % 60).padStart(2, "0");
-  return `${m}:${s}`;
-};
-
-const regenHeartTimers = () => {
-  document.querySelectorAll(".regen-timer").forEach(timerSpan => {
-    const i = timerSpan.dataset.index;
-    const usedAt = hearts[i];
-    const remaining = regenTime - (Date.now() - usedAt);
-    if (remaining <= 0) {
-      hearts[i] = null;
-      localStorage.setItem("hearts", JSON.stringify(hearts));
-    }
-  });
+const regenHeartLoop = () => {
   updateHeartsUI();
+  localStorage.setItem("hearts", JSON.stringify(hearts));
 };
 
 const useHeart = () => {
@@ -157,13 +142,11 @@ const useHeart = () => {
     setTimeout(getRandomWord, 3000);
   } else {
     playAgainBtn.innerText = "Return to Lobby";
-    playAgainBtn.addEventListener("click", () => {
-      location.href = "lobby.html";
-    });
+    playAgainBtn.addEventListener("click", () => location.href = "lobby.html");
   }
 };
 
-setInterval(regenHeartTimers, 1000);
+setInterval(regenHeartLoop, 1000);
 
 playAgainBtn.addEventListener("click", () => {
   if (hearts.includes(null)) {
