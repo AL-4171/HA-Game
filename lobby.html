@@ -37,11 +37,13 @@
   <div class="heart-container"></div>
   <button class="play-button">Play</button>
 
-  <script>
+ <script>
   const container = document.querySelector(".heart-container");
   const playButton = document.querySelector(".play-button");
   const regenTime = 10 * 60 * 1000;
   let hearts = JSON.parse(localStorage.getItem("hearts")) || Array(5).fill(null);
+
+  const getNextUsedHeartIndex = () => hearts.findIndex(h => h !== null);
 
   const updateUI = () => {
     container.innerHTML = "";
@@ -49,21 +51,30 @@
 
     hearts.forEach((usedAt, i) => {
       const span = document.createElement("span");
+
       if (usedAt === null) {
         span.textContent = "❤️";
         canPlay = true;
       } else {
-        const timeLeft = regenTime - (Date.now() - usedAt);
-        if (timeLeft <= 0) {
-          hearts[i] = null;
-          span.textContent = "❤️";
-          canPlay = true;
+        const nextIndex = getNextUsedHeartIndex();
+        if (i === nextIndex) {
+          const timeLeft = regenTime - (Date.now() - usedAt);
+          if (timeLeft <= 0) {
+            hearts[i] = null;
+            span.textContent = "❤️";
+            canPlay = true;
+            // save after regeneration
+            localStorage.setItem("hearts", JSON.stringify(hearts));
+          } else {
+            const m = String(Math.floor(timeLeft / 1000 / 60)).padStart(2, "0");
+            const s = String(Math.floor((timeLeft / 1000) % 60)).padStart(2, "0");
+            span.textContent = `🕓 ${m}:${s}`;
+          }
         } else {
-          const m = String(Math.floor(timeLeft / 1000 / 60)).padStart(2, "0");
-          const s = String(Math.floor((timeLeft / 1000) % 60)).padStart(2, "0");
-          span.textContent = `🕓 ${m}:${s}`;
+          span.textContent = "🕓 --:--"; // waiting
         }
       }
+
       container.appendChild(span);
     });
 
