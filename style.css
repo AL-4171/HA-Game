@@ -160,4 +160,17 @@ font-size: 1.53rem;
 .hangman-box h1{
   display: none;  
 }
+
+}
+.timer-text {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 15px;
+}
+
+.heart-container {
+  text-align: center;
+  font-size: 1.5rem;
+  margin-bottom: 10px;
 }
