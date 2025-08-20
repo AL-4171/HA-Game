@@ -21,35 +21,35 @@ function updateHeartsUI() {
   heartContainer.innerHTML = "";
   let canPlay = false;
 
+  const nextIndex = getNextUsedHeartIndex();
+
   hearts.forEach((usedAt, i) => {
     const span = document.createElement("span");
+
     if (usedAt === null) {
       span.textContent = "❤️";
       canPlay = true;
-    } else {
-      const nextIndex = getNextUsedHeartIndex();
-      if (i === nextIndex) {
-        const timeLeft = regenTime - (Date.now() - usedAt);
-        if (timeLeft <= 0) {
-          hearts[i] = null;
-          span.textContent = "❤️";
-          canPlay = true;
-          localStorage.setItem("hearts", JSON.stringify(hearts));
-        } else {
-          const m = String(Math.floor(timeLeft / 1000 / 60)).padStart(2, "0");
-          const s = String(Math.floor((timeLeft / 1000) % 60)).padStart(2, "0");
-          span.textContent = `🕓 ${m}:${s}`;
-        }
+    } else if (i === nextIndex) {
+      const timeLeft = regenTime - (Date.now() - usedAt);
+      if (timeLeft <= 0) {
+        hearts[i] = null;
+        span.textContent = "❤️";
+        canPlay = true;
+        localStorage.setItem("hearts", JSON.stringify(hearts));
       } else {
-        span.textContent = "🕓 --:--";
+        const m = String(Math.floor(timeLeft / 1000 / 60)).padStart(2, "0");
+        const s = String(Math.floor((timeLeft / 1000) % 60)).padStart(2, "0");
+        span.textContent = `${m}:${s}`; // show countdown for NEXT empty heart
       }
+    } else {
+      span.textContent = "❤️"; // keep others as hearts
     }
+
     heartContainer.appendChild(span);
   });
 
   localStorage.setItem("hearts", JSON.stringify(hearts));
 
-  // Show play button on lobby if available
   const playButton = document.querySelector(".play-button");
   if (playButton) playButton.style.display = canPlay ? "inline-block" : "none";
 }
@@ -62,6 +62,11 @@ function loseHeart() {
   hearts[firstAvailableIndex] = Date.now();
   localStorage.setItem("hearts", JSON.stringify(hearts));
   updateHeartsUI();
+
+  // if all hearts are now used
+  if (!hearts.includes(null)) {
+    return false;
+  }
   return true;
 }
 
@@ -102,18 +107,20 @@ const gameOver = (isVictory) => {
 
   if (isVictory) {
     level++;
-    setTimeout(getRandomWord, 3000);
+    playAgainBtn.innerText = "Next Level";
+    playAgainBtn.style.display = "inline-block";
+    playAgainBtn.onclick = () => getRandomWord(); // load a new word
   } else {
-    // Use heart when player loses
     if (!loseHeart()) {
-      // No hearts left
       playAgainBtn.innerText = "Return to Lobby";
       playAgainBtn.style.display = "inline-block";
       playAgainBtn.onclick = () => location.href = "lobby.html";
     } else {
-      // Hearts left, auto restart next word after delay
-      setTimeout(getRandomWord, 3000);
-      playAgainBtn.style.display = "none";
+      playAgainBtn.innerText = "Play Again";
+      playAgainBtn.style.display = "inline-block";
+      playAgainBtn.onclick = () => {
+        resetGame(); // retry SAME word
+      };
     }
   }
 };
@@ -167,19 +174,8 @@ const renderKeyboard = () => {
   }
 };
 
-playAgainBtn.addEventListener("click", () => {
-  if (hearts.includes(null)) {
-    getRandomWord();
-    playAgainBtn.style.display = "none";
-    gameModal.classList.remove("show");
-  } else {
-    location.href = "lobby.html";
-  }
-});
-
 setInterval(updateHeartsUI, 1000);
 
 renderKeyboard();
 updateHeartsUI();
 getRandomWord();
-
