@@ -4,21 +4,20 @@ const guessesText = document.querySelector(".guesses-text b");
 const keyboardDiv = document.querySelector(".keyboard");
 const gameModal = document.querySelector(".game-modal");
 const playAgainBtn = document.querySelector(".play-again");
-const levelText = document.querySelector(".level-text b"); // Add this in HTML
+const levelText = document.querySelector(".level-text b"); // Make sure you have this in HTML
 
 const maxGuesses = 6;
-let currentWord, correctLetters, wrongGuessCount;
+let currentWord, wrongGuessCount;
 let level = 1;
 
 const resetGame = () => {
-  correctLetters = [];
   wrongGuessCount = 0;
   hangmanImage.src = `images/hangman-${wrongGuessCount}.svg`;
   guessesText.innerText = `${wrongGuessCount} / ${maxGuesses}`;
   keyboardDiv.querySelectorAll("button").forEach(btn => btn.disabled = false);
   wordDisplay.innerHTML = currentWord.split("").map(() => '<li class="letter"></li>').join("");
   gameModal.classList.remove("show");
-  playAgainBtn.style.display = "inline-block"; // Always visible now
+  playAgainBtn.style.display = "none"; // only shown when game ends
 };
 
 const getRandomWord = () => {
@@ -43,12 +42,14 @@ const gameOver = (isVictory) => {
 
   if (isVictory) {
     playAgainBtn.innerText = "Next Level";
+    playAgainBtn.style.display = "inline-block";
     playAgainBtn.onclick = () => {
       level++;
       getRandomWord();
     };
   } else {
     playAgainBtn.innerText = "Play Again";
+    playAgainBtn.style.display = "inline-block";
     playAgainBtn.onclick = () => resetGame(); // retry same word
   }
 };
@@ -60,9 +61,9 @@ const initGame = (button, clickedLetter) => {
   } else {
     [...currentWord].forEach((letter, index) => {
       if (letter === clickedLetter) {
-        correctLetters.push(letter);
-        wordDisplay.querySelectorAll("li")[index].innerText = letter;
-        wordDisplay.querySelectorAll("li")[index].classList.add("guessed");
+        const li = wordDisplay.querySelectorAll("li")[index];
+        li.innerText = letter;
+        li.classList.add("guessed");
       }
     });
   }
@@ -70,6 +71,7 @@ const initGame = (button, clickedLetter) => {
   button.disabled = true;
   guessesText.innerText = `${wrongGuessCount} / ${maxGuesses}`;
 
+  // Check win by making sure all letters are revealed
   const guessedAll = [...wordDisplay.querySelectorAll("li")].every(li => li.classList.contains("guessed"));
   if (guessedAll) return gameOver(true);
   if (wrongGuessCount === maxGuesses) return gameOver(false);
