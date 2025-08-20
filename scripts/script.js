@@ -5,74 +5,14 @@ const keyboardDiv = document.querySelector(".keyboard");
 const gameModal = document.querySelector(".game-modal");
 const playAgainBtn = document.querySelector(".play-again");
 const timerText = document.querySelector(".timer-text b");
-const heartContainer = document.querySelector(".heart-container");
 
 const maxGuesses = 6;
-const maxHearts = 5;
-const regenTime = 10 * 60 * 1000; // 10 minutes
-
 let currentWord, correctLetters, wrongGuessCount, timer, timeLeft;
 let level = 1;
-let hearts = JSON.parse(localStorage.getItem("hearts")) || Array(maxHearts).fill(null);
-
-const getNextUsedHeartIndex = () => hearts.findIndex(h => h !== null);
-
-function updateHeartsUI() {
-  heartContainer.innerHTML = "";
-  let canPlay = false;
-
-  const nextIndex = getNextUsedHeartIndex();
-
-  hearts.forEach((usedAt, i) => {
-    const span = document.createElement("span");
-
-    if (usedAt === null) {
-      span.textContent = "❤️";
-      canPlay = true;
-    } else if (i === nextIndex) {
-      const timeLeft = regenTime - (Date.now() - usedAt);
-      if (timeLeft <= 0) {
-        hearts[i] = null;
-        span.textContent = "❤️";
-        canPlay = true;
-        localStorage.setItem("hearts", JSON.stringify(hearts));
-      } else {
-        const m = String(Math.floor(timeLeft / 1000 / 60)).padStart(2, "0");
-        const s = String(Math.floor((timeLeft / 1000) % 60)).padStart(2, "0");
-        span.textContent = `${m}:${s}`; // show countdown for NEXT empty heart
-      }
-    } else {
-      span.textContent = "❤️"; // keep others as hearts
-    }
-
-    heartContainer.appendChild(span);
-  });
-
-  localStorage.setItem("hearts", JSON.stringify(hearts));
-
-  const playButton = document.querySelector(".play-button");
-  if (playButton) playButton.style.display = canPlay ? "inline-block" : "none";
-}
-
-function loseHeart() {
-  const firstAvailableIndex = hearts.findIndex(h => h === null);
-  if (firstAvailableIndex === -1) {
-    return false; // no hearts left
-  }
-  hearts[firstAvailableIndex] = Date.now();
-  localStorage.setItem("hearts", JSON.stringify(hearts));
-  updateHeartsUI();
-
-  // if all hearts are now used
-  if (!hearts.includes(null)) {
-    return false;
-  }
-  return true;
-}
 
 const resetGame = () => {
   clearInterval(timer);
-  timeLeft = 120;
+  timeLeft = 120; // 2 minutes
   updateTimerUI();
   startTimer();
   correctLetters = [];
@@ -109,19 +49,11 @@ const gameOver = (isVictory) => {
     level++;
     playAgainBtn.innerText = "Next Level";
     playAgainBtn.style.display = "inline-block";
-    playAgainBtn.onclick = () => getRandomWord(); // load a new word
+    playAgainBtn.onclick = () => getRandomWord(); // load new word
   } else {
-    if (!loseHeart()) {
-      playAgainBtn.innerText = "Return to Lobby";
-      playAgainBtn.style.display = "inline-block";
-      playAgainBtn.onclick = () => location.href = "lobby.html";
-    } else {
-      playAgainBtn.innerText = "Play Again";
-      playAgainBtn.style.display = "inline-block";
-      playAgainBtn.onclick = () => {
-        resetGame(); // retry SAME word
-      };
-    }
+    playAgainBtn.innerText = "Play Again";
+    playAgainBtn.style.display = "inline-block";
+    playAgainBtn.onclick = () => resetGame(); // retry same word
   }
 };
 
@@ -174,8 +106,5 @@ const renderKeyboard = () => {
   }
 };
 
-setInterval(updateHeartsUI, 1000);
-
 renderKeyboard();
-updateHeartsUI();
 getRandomWord();
